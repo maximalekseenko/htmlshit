@@ -1,13 +1,40 @@
 const GRIDSCALE = 10;
 
 class Snake {
-    constructor(__name = "rip", __parts = [], __width = 5 / 10, __curve = -1) {
+    constructor(
+        __name = "rip",
+        __segments = [],
+        __width = 5 / 10,
+        __curve = -1,
+        __headMaker = -1,
+        __segmentMaker = -1,
+        __tailMaker = -1,
+        __styles = -1
+    ) {
+
+        // Set name.
         this.name = __name;
-        this.parts = __parts;
+
+        // Set Segments.
+        this.segments = [];
+        __segments.forEach(_segment => this.Append(_segment));
+
+        // Set width (half width) and curve.
         this.SetWidthAndCurve(__width, __curve);
+
+        // Set Styles.
+        this.styles = this.styles;
+
+        // Set maker functions.
+        this.headMaker;
+        this.segmentMaker;
+        this.tailMaker;
     }
+
+
     SetWidthAndCurve(__newWidth, __newCurve) {
-        // Check arguments
+
+        // Check arguments.
         if (!(0 < __newWidth <= 1))
             throw `Snake "${this.name}" got incorrect width "${__newWidth}".`;
         if (__newCurve != -1 && !(0 <= __newCurve <= (1 - __newWidth) / 2))
@@ -17,37 +44,53 @@ class Snake {
         this.width = GRIDSCALE * __newWidth;
         this._halfWidth = GRIDSCALE * __newWidth / 2;
         this.curve = GRIDSCALE * (__newCurve == -1 ? (1 - __newWidth) / 2 : __newCurve);
-        console.log(this.curve * 2 + this.width)
     }
+
+
     Append(point) {
-        // if (this.parts.length != 0
-        //     && this.parts[0]) return;
-        this.parts.push(point);
+        // if (this.segments.length != 0
+        //     && this.segments[0]) return;
+        this.segments.push(point);
     }
-    Update() {
-        if (this.parts.length <= 2) throw "snake is to small!";
 
-        var _snakeSVG = $('<svg id="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 0 0"><defs><style>.cls-1 {fill: #fff0;stroke: #000000;}.cls-2 {fill: #fff0;stroke: #ff0000;}</style></defs></svg>');
-        _snakeSVG.attr("id", `snake-${this.name}-svg`);
-        var _snakeSVGBody = $("<g></g>");
 
-        var pathA = "";
-        var pathB = "";
+    Pop() {
 
-        for (let index = 0; index < this.parts.length; index++) {
-            var _thisPointCenterX = this.parts[index][0] * GRIDSCALE + GRIDSCALE / 2,
-                _thisPointCenterY = this.parts[index][1] * GRIDSCALE + GRIDSCALE / 2;
+    }
 
-            // First segment
+
+    BodyMaker() {
+        // Main idea here is to make two paths, parallel around the central "core" path, 
+        // and than connect them, forming a snake-width thick figure around "core" path,
+        // to achieve this in one cycle,
+        // first path is drawn normally,
+        // while the second one is reversed.
+
+        // for a snake going down:
+        // Path A is a left side;
+        // Path B is a right side.
+        var pathA = "",
+            pathB = "";
+
+        // Iterate through segments.
+        for (let index = 0; index < this.segments.length; index++) {
+
+            // Central point of current segment.
+            var _thisPointCenterX = this.segments[index][0] * GRIDSCALE + GRIDSCALE / 2,
+                _thisPointCenterY = this.segments[index][1] * GRIDSCALE + GRIDSCALE / 2;
+
+            // If first segment.
             if (index == 0) {
+
+                // Get Front and/or Back paths.
+                var _dxFrontPath = this.segments[index + 1][0] - this.segments[index][0],
+                    _dyFrontPath = this.segments[index + 1][1] - this.segments[index][1];
 
                 // Center start
                 pathA += `M${_thisPointCenterX},${_thisPointCenterY}`;
 
-
-                var _dxFrontPath = this.parts[index + 1][0] - this.parts[index][0],
-                    _dyFrontPath = this.parts[index + 1][1] - this.parts[index][1];
-
+                // Move paths out of center to body width;
+                // vertical or horizontal doesn't matter - the second one will be zero.
                 pathA += `h${-_dyFrontPath * this._halfWidth
                     }v${_dxFrontPath * this._halfWidth
                     }`;
@@ -55,14 +98,19 @@ class Snake {
                     }V${_thisPointCenterY - _dxFrontPath * this._halfWidth
                     }` + pathB;
 
-                // Center end
+                // Center end.
                 pathB += `H${_thisPointCenterX}V${_thisPointCenterY}`;
             }
 
-            // Last segment
-            else if (index == this.parts.length - 1) {
-                var _dxBackPath = this.parts[index][0] - this.parts[index - 1][0],
-                    _dyBackPath = this.parts[index][1] - this.parts[index - 1][1];
+            // If last segment.
+            else if (index == this.segments.length - 1) {
+
+                // Get Front and/or Back paths.
+                var _dxBackPath = this.segments[index][0] - this.segments[index - 1][0],
+                    _dyBackPath = this.segments[index][1] - this.segments[index - 1][1];
+
+                // Move paths from body width into center;
+                // vertical or horizontal doesn't matter - the second one will be zero.
                 pathA += `H${_thisPointCenterX - _dyFrontPath * this._halfWidth
                     }V${_thisPointCenterY + _dxFrontPath * this._halfWidth
                     }`;
@@ -70,37 +118,47 @@ class Snake {
                     }V${_thisPointCenterY - _dxFrontPath * this._halfWidth
                     }` + pathB;
             }
-            // Middle segments
-            else {
-                var _dxFrontPath = this.parts[index + 1][0] - this.parts[index][0],
-                    _dyFrontPath = this.parts[index + 1][1] - this.parts[index][1];
-                var _dxBackPath = this.parts[index][0] - this.parts[index - 1][0],
-                    _dyBackPath = this.parts[index][1] - this.parts[index - 1][1];
 
-                // strait path - no points needed
+            // If middle segments.
+            else {
+
+                // Get Front and/or Back paths.
+                var _dxFrontPath = this.segments[index + 1][0] - this.segments[index][0],
+                    _dyFrontPath = this.segments[index + 1][1] - this.segments[index][1];
+                var _dxBackPath = this.segments[index][0] - this.segments[index - 1][0],
+                    _dyBackPath = this.segments[index][1] - this.segments[index - 1][1];
+
+                // Skip segment if its is not a corner one.
                 if (_dxBackPath == _dxFrontPath != 0 || _dyBackPath == _dyFrontPath != 0)
                     continue;
 
-
+                // If came from horizontal movement.
                 var _isHorizontal = _dxBackPath != 0;
+
+                // Is this corner segment is rotated clockwise.
                 var _isClockwise = (_dxFrontPath + _dxBackPath) * (_dyFrontPath - _dyBackPath) > 0;
 
+                // Move paths for this segment;
+                // To reduce size of path, it make ether vertical or horizontal move.
                 pathA +=
-                    // Straight
-                    (_isHorizontal ? 'H' : 'V') + (
-                        (_isHorizontal ? _thisPointCenterX : _thisPointCenterY)
+                    // Make a straight move.
+                    (_dxBackPath != 0 ? 'H' : 'V') + (
+                        (_dxBackPath != 0 ? _thisPointCenterX : _thisPointCenterY)
                         + ((this._halfWidth + this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxBackPath > 0 || _dyBackPath > 0) ? -1 : 1))
                     )
-                    // Curve
+                    // Make a Bezier curve.
                     + `q${(_dxBackPath < 0 ? "-" : "") + (_dyFrontPath != 0 ? this.curve : 0)
                     }${(_dyBackPath < 0 ? "-" : ",") + (_dxFrontPath != 0 ? this.curve : 0)
                     }${(_dxBackPath < 0 || _dxFrontPath < 0 ? "-" : ",") + this.curve
                     }${(_dyBackPath < 0 || _dyFrontPath < 0 ? "-" : ",") + this.curve
                     }`;
-                pathB = (_isHorizontal ? 'V' : 'H') + (
-                    (_isHorizontal ? _thisPointCenterY : _thisPointCenterX)
-                    + ((this._halfWidth - this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxFrontPath > 0 || _dyFrontPath > 0) ? -1 : 1))
-                )
+                pathB =
+                    // Make a straight move.
+                    (_dxFrontPath != 0 ? 'H' : 'V') + (
+                        (_dxFrontPath != 0 ? _thisPointCenterX : _thisPointCenterY)
+                        + ((this._halfWidth - this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxFrontPath > 0 || _dyFrontPath > 0) ? -1 : 1))
+                    )
+                    // Make a Bezier curve.
                     + `q${(_dxFrontPath > 0 ? "-" : "") + (_dyBackPath != 0 ? this.curve : 0)
                     }${(_dyFrontPath > 0 ? "-" : ",") + (_dxBackPath != 0 ? this.curve : 0)
                     }${(_dxFrontPath > 0 || _dxBackPath > 0 ? "-" : ",") + this.curve
@@ -110,15 +168,32 @@ class Snake {
             }
         }
 
-        _snakeSVGBody.append('<path class="cls-1" d="' + pathA + pathB + '"/>')
-        _snakeSVG.attr("viewBox", "0 0 100 100"); // todo: correct size
+        // Finish body and return
+        return $("<g></g>").append(`<path class="snake-${this.name}-svg-body" d="${pathA}${pathB}"/>`);
+    }
+    Update() {
+        if (this.segments.length <= 2) throw "snake is to small!";
 
-        _snakeSVGBody.appendTo(_snakeSVG);
+        var _snakeSVG = $(`<svg></svg>`);
+        var _snakeDIV = $(`<div></div>`)
+            .attr(`id`, `snake-${this.name}-div`)
+            .html("").append(_snakeSVG).appendTo($("#snakes"));
 
-        $("#snakes").append(_snakeSVG);
+        // Set attributes to svg
+        _snakeSVG.attr(`id`, `snake-${this.name}-svg`);
+        _snakeSVG.attr(`xmlns`, `http://www.w3.org/2000/svg`);
+        _snakeSVG.attr(`viewBox`, `0 0 100 100`);
+        //     + `viewBox="0 0 100 100"> `
+        // _snakeSVG.attr(`id`, `snake-${this.name}-svg`);
+        //     + `<defs><style>${this.styles}</style></defs>`
+        //     + `</svg>`
+        // );
 
+        // // Generate body
+        _snakeSVG.append(this.BodyMaker());
 
-        $("#snakes").html($("#snakes").html())
+        // Add to screen and refresh
+        _snakeDIV.html(_snakeDIV.html());
     }
 };
 
