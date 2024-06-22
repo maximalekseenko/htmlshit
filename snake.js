@@ -2,16 +2,22 @@ const GRIDSCALE = 10;
 
 class Snake {
     constructor(__name = "rip", __parts = [], __width = 5 / 10, __curve = -1) {
-        // Argument checks
-        if (!(0 < __width <= 1))
-            throw `New snake "${__name}" got incorrect width "${__width}".`;
-        if (__curve != -1 && !(0 <= __curve <= (1 - __width) / 2))
-            throw `New snake "${__name}" with width of "${__width}" got incorrect curve size "${__curve}"`;
-
         this.name = __name;
         this.parts = __parts;
-        this.halfWidth = GRIDSCALE * __width / 2;
-        this.curve = GRIDSCALE * (__curve == -1 ? (0.5 - this.halfWidth) : __curve);
+        this.SetWidthAndCurve(__width, __curve);
+    }
+    SetWidthAndCurve(__newWidth, __newCurve) {
+        // Check arguments
+        if (!(0 < __newWidth <= 1))
+            throw `Snake "${this.name}" got incorrect width "${__newWidth}".`;
+        if (__newCurve != -1 && !(0 <= __newCurve <= (1 - __newWidth) / 2))
+            throw `New snake "${this.name}" with width of "${__newWidth}" got incorrect curve size "${__curve}"`;
+
+        // Set
+        this.width = GRIDSCALE * __newWidth;
+        this._halfWidth = GRIDSCALE * __newWidth / 2;
+        this.curve = GRIDSCALE * (__newCurve == -1 ? (1 - __newWidth) / 2 : __newCurve);
+        console.log(this.curve * 2 + this.width)
     }
     Append(point) {
         // if (this.parts.length != 0
@@ -42,9 +48,11 @@ class Snake {
                 var _dxFrontPath = this.parts[index + 1][0] - this.parts[index][0],
                     _dyFrontPath = this.parts[index + 1][1] - this.parts[index][1];
 
-                pathA += `h${-_dyFrontPath * this.halfWidth}v${_dxFrontPath * this.halfWidth}`;
-                pathB = `H${_thisPointCenterX + _dyFrontPath * this.halfWidth
-                    }V${_thisPointCenterY - _dxFrontPath * this.halfWidth
+                pathA += `h${-_dyFrontPath * this._halfWidth
+                    }v${_dxFrontPath * this._halfWidth
+                    }`;
+                pathB = `H${_thisPointCenterX + _dyFrontPath * this._halfWidth
+                    }V${_thisPointCenterY - _dxFrontPath * this._halfWidth
                     }` + pathB;
 
                 // Center end
@@ -55,12 +63,11 @@ class Snake {
             else if (index == this.parts.length - 1) {
                 var _dxBackPath = this.parts[index][0] - this.parts[index - 1][0],
                     _dyBackPath = this.parts[index][1] - this.parts[index - 1][1];
-
-                pathA += `H${_thisPointCenterX - _dyFrontPath * this.halfWidth
-                    }V${_thisPointCenterY + _dxFrontPath * this.halfWidth
+                pathA += `H${_thisPointCenterX - _dyFrontPath * this._halfWidth
+                    }V${_thisPointCenterY + _dxFrontPath * this._halfWidth
                     }`;
-                pathB = `H${_thisPointCenterX + _dyFrontPath * this.halfWidth
-                    }V${_thisPointCenterY - _dxFrontPath * this.halfWidth
+                pathB = `H${_thisPointCenterX + _dyFrontPath * this._halfWidth
+                    }V${_thisPointCenterY - _dxFrontPath * this._halfWidth
                     }` + pathB;
             }
             // Middle segments
@@ -82,7 +89,7 @@ class Snake {
                     // Straight
                     (_isHorizontal ? 'H' : 'V') + (
                         (_isHorizontal ? _thisPointCenterX : _thisPointCenterY)
-                        + ((this.halfWidth + this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxBackPath > 0 || _dyBackPath > 0) ? -1 : 1))
+                        + ((this._halfWidth + this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxBackPath > 0 || _dyBackPath > 0) ? -1 : 1))
                     )
                     // Curve
                     + `q${(_dxBackPath < 0 ? "-" : "") + (_dyFrontPath != 0 ? this.curve : 0)
@@ -92,7 +99,7 @@ class Snake {
                     }`;
                 pathB = (_isHorizontal ? 'V' : 'H') + (
                     (_isHorizontal ? _thisPointCenterY : _thisPointCenterX)
-                    + ((this.halfWidth - this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxFrontPath > 0 || _dyFrontPath > 0) ? -1 : 1))
+                    + ((this._halfWidth - this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxFrontPath > 0 || _dyFrontPath > 0) ? -1 : 1))
                 )
                     + `q${(_dxFrontPath > 0 ? "-" : "") + (_dyBackPath != 0 ? this.curve : 0)
                     }${(_dyFrontPath > 0 ? "-" : ",") + (_dxBackPath != 0 ? this.curve : 0)
@@ -139,8 +146,7 @@ $(() => {
             [1, 3],
             [2, 3]
         ],
-        4 / 10,
-        -1
+        6 / 10
     );
     s.Update();
 })
