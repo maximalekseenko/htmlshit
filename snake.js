@@ -1,4 +1,6 @@
 const GRIDSCALE = 10;
+const GRIDROWS = 10;
+const GRIDCOLS = 10;
 
 class Snake {
     constructor(
@@ -6,10 +8,10 @@ class Snake {
         __segments = [],
         __width = 5 / 10,
         __curve = -1,
-        __headMaker = -1,
+        __headSVG = ``,
         __segmentMaker = -1,
-        __tailMaker = -1,
-        __styles = -1
+        __tailSVG = ``,
+        __styles = ``
     ) {
 
         // Set name.
@@ -23,12 +25,12 @@ class Snake {
         this.SetWidthAndCurve(__width, __curve);
 
         // Set Styles.
-        this.styles = this.styles;
+        this.styles = __styles;
 
         // Set maker functions.
-        this.headMaker;
-        this.segmentMaker;
-        this.tailMaker;
+        this.headSVG = __headSVG;
+        // this.segmentMaker;
+        this.tailSVG = __tailSVG;
     }
 
 
@@ -41,9 +43,9 @@ class Snake {
             throw `New snake "${this.name}" with width of "${__newWidth}" got incorrect curve size "${__curve}"`;
 
         // Set
-        this.width = GRIDSCALE * __newWidth;
-        this._halfWidth = GRIDSCALE * __newWidth / 2;
-        this.curve = GRIDSCALE * (__newCurve == -1 ? (1 - __newWidth) / 2 : __newCurve);
+        this.width = __newWidth;
+        this._halfWidth = __newWidth / 2;
+        this.curve = (__newCurve == -1 ? (1 - __newWidth) / 2 : __newCurve);
     }
 
 
@@ -58,13 +60,33 @@ class Snake {
 
     }
 
-
+    HeadMaker(__centerX, __centerY, __isHorizontal, __isPositive) {
+        return $(this.headSVG)
+            .attr(`transform`, `
+                translate(${__centerX} ${__centerY})
+                rotate(${90 * (!__isHorizontal + 2 * __isPositive)} 0 0)
+            `);
+    }
+    SegmentMaker(__centerX, __centerY, __isHorizontal, __isPositive) {
+        // return `<a>`
+    }
+    TailMaker(__centerX, __centerY, __isHorizontal, __isPositive) {
+        return $(this.tailSVG)
+            .attr(`transform`, `
+                translate(${__centerX} ${__centerY})
+                rotate(${90 * (!__isHorizontal + 2 * __isPositive)} 0 0)
+            `);
+    }
     BodyMaker() {
         // Main idea here is to make two paths, parallel around the central "core" path, 
         // and than connect them, forming a snake-width thick figure around "core" path,
         // to achieve this in one cycle,
         // first path is drawn normally,
         // while the second one is reversed.
+
+        var snakeBodySegmentDecors = [],
+            snakeHead = ``,
+            snakeTail = ``;
 
         // for a snake going down:
         // Path A is a left side;
@@ -76,8 +98,8 @@ class Snake {
         for (let index = 0; index < this.segments.length; index++) {
 
             // Central point of current segment.
-            var _thisPointCenterX = this.segments[index][0] * GRIDSCALE + GRIDSCALE / 2,
-                _thisPointCenterY = this.segments[index][1] * GRIDSCALE + GRIDSCALE / 2;
+            var _thisSegmentCenterX = this.segments[index][0] + .5,
+                _thisSegmentCenterY = this.segments[index][1] + .5;
 
             // If first segment.
             if (index == 0) {
@@ -87,19 +109,23 @@ class Snake {
                     _dyFrontPath = this.segments[index + 1][1] - this.segments[index][1];
 
                 // Center start
-                pathA += `M${_thisPointCenterX},${_thisPointCenterY}`;
+                pathA += `M${_thisSegmentCenterX},${_thisSegmentCenterY}`;
 
                 // Move paths out of center to body width;
                 // vertical or horizontal doesn't matter - the second one will be zero.
                 pathA += `h${-_dyFrontPath * this._halfWidth
                     }v${_dxFrontPath * this._halfWidth
                     }`;
-                pathB = `H${_thisPointCenterX + _dyFrontPath * this._halfWidth
-                    }V${_thisPointCenterY - _dxFrontPath * this._halfWidth
+                pathB = `H${_thisSegmentCenterX + _dyFrontPath * this._halfWidth
+                    }V${_thisSegmentCenterY - _dxFrontPath * this._halfWidth
                     }` + pathB;
 
                 // Center end.
-                pathB += `H${_thisPointCenterX}V${_thisPointCenterY}`;
+                pathB += `H${_thisSegmentCenterX}V${_thisSegmentCenterY}`;
+
+                // Make head SVG
+                snakeHead = this.HeadMaker(_thisSegmentCenterX, _thisSegmentCenterY,
+                    _dxFrontPath != 0, _dxFrontPath > 0 || _dyFrontPath > 0);
             }
 
             // If last segment.
@@ -111,12 +137,16 @@ class Snake {
 
                 // Move paths from body width into center;
                 // vertical or horizontal doesn't matter - the second one will be zero.
-                pathA += `H${_thisPointCenterX - _dyFrontPath * this._halfWidth
-                    }V${_thisPointCenterY + _dxFrontPath * this._halfWidth
+                pathA += `H${_thisSegmentCenterX - _dyFrontPath * this._halfWidth
+                    }V${_thisSegmentCenterY + _dxFrontPath * this._halfWidth
                     }`;
-                pathB = `H${_thisPointCenterX + _dyFrontPath * this._halfWidth
-                    }V${_thisPointCenterY - _dxFrontPath * this._halfWidth
+                pathB = `H${_thisSegmentCenterX + _dyFrontPath * this._halfWidth
+                    }V${_thisSegmentCenterY - _dxFrontPath * this._halfWidth
                     }` + pathB;
+
+                // Make tail SVG
+                snakeTail = this.TailMaker(_thisSegmentCenterX, _thisSegmentCenterY,
+                    _dxFrontPath != 0, _dxFrontPath > 0 || _dyFrontPath > 0);
             }
 
             // If middle segments.
@@ -132,9 +162,6 @@ class Snake {
                 if (_dxBackPath == _dxFrontPath != 0 || _dyBackPath == _dyFrontPath != 0)
                     continue;
 
-                // If came from horizontal movement.
-                var _isHorizontal = _dxBackPath != 0;
-
                 // Is this corner segment is rotated clockwise.
                 var _isClockwise = (_dxFrontPath + _dxBackPath) * (_dyFrontPath - _dyBackPath) > 0;
 
@@ -143,7 +170,7 @@ class Snake {
                 pathA +=
                     // Make a straight move.
                     (_dxBackPath != 0 ? 'H' : 'V') + (
-                        (_dxBackPath != 0 ? _thisPointCenterX : _thisPointCenterY)
+                        (_dxBackPath != 0 ? _thisSegmentCenterX : _thisSegmentCenterY)
                         + ((this._halfWidth + this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxBackPath > 0 || _dyBackPath > 0) ? -1 : 1))
                     )
                     // Make a Bezier curve.
@@ -155,7 +182,7 @@ class Snake {
                 pathB =
                     // Make a straight move.
                     (_dxFrontPath != 0 ? 'H' : 'V') + (
-                        (_dxFrontPath != 0 ? _thisPointCenterX : _thisPointCenterY)
+                        (_dxFrontPath != 0 ? _thisSegmentCenterX : _thisSegmentCenterY)
                         + ((this._halfWidth - this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxFrontPath > 0 || _dyFrontPath > 0) ? -1 : 1))
                     )
                     // Make a Bezier curve.
@@ -165,11 +192,41 @@ class Snake {
                     }${(_dyFrontPath > 0 || _dyBackPath > 0 ? "-" : ",") + this.curve
                     }`
                     + pathB;
+
+                // Add a Segment decor
+                snakeBodySegmentDecors.push(this.SegmentMaker());
             }
         }
 
-        // Finish body and return
-        return $("<g></g>").append(`<path class="snake-${this.name}-svg-body" d="${pathA}${pathB}"/>`);
+        // Return body and segments
+        return [
+            // Body path.
+            $(`<g/>`)
+                .attr(`id`, `snake-${this.name}-svg-body-group`)
+                .append($(`<path/>`)
+                    .attr(`id`, `snake-${this.name}-svg-body-path`)
+                    .attr(`d`, pathA + pathB)
+                    .addClass(`snake-body`)
+                ).attr(`transform`, `scale(${GRIDSCALE}, ${GRIDSCALE})`),
+            // Segment decors.
+            $(`<g/>`)
+                .attr(`id`, `snake-${this.name}-svg-segment-group`)
+                .append(snakeBodySegmentDecors)
+
+                .attr(`transform`, `scale(${GRIDSCALE}, ${GRIDSCALE})`),
+            // Head
+            $(`<g/>`)
+                .attr(`id`, `snake-${this.name}-svg-head-group`)
+                .append(snakeHead)
+
+                .attr(`transform`, `scale(${GRIDSCALE}, ${GRIDSCALE})`),
+            // Tail
+            $(`<g/>`)
+                .attr(`id`, `snake-${this.name}-svg-body-group`)
+                .append(snakeTail)
+
+                .attr(`transform`, `scale(${GRIDSCALE}, ${GRIDSCALE})`),
+        ];
     }
     Update() {
         if (this.segments.length <= 2) throw "snake is to small!";
@@ -179,26 +236,91 @@ class Snake {
             .attr(`id`, `snake-${this.name}-div`)
             .html("").append(_snakeSVG).appendTo($("#snakes"));
 
-        // Set attributes to svg
-        _snakeSVG.attr(`id`, `snake-${this.name}-svg`);
-        _snakeSVG.attr(`xmlns`, `http://www.w3.org/2000/svg`);
-        _snakeSVG.attr(`viewBox`, `0 0 100 100`);
-        //     + `viewBox="0 0 100 100"> `
-        // _snakeSVG.attr(`id`, `snake-${this.name}-svg`);
-        //     + `<defs><style>${this.styles}</style></defs>`
-        //     + `</svg>`
-        // );
+        // Set attributes to svg.
+        _snakeSVG
+            .attr(`id`, `snake-${this.name}-svg`)
+            .attr(`xmlns`, `http://www.w3.org/2000/svg`)
+            .attr(`viewBox`, `0 0 ${GRIDCOLS * GRIDSCALE} ${GRIDROWS * GRIDSCALE}`)
+            .append(`<defs><style>${this.styles}</style></defs>`);
 
-        // // Generate body
+        // Make snake
+        // _snakeSVG.append(this.HeadMaker());
         _snakeSVG.append(this.BodyMaker());
+        _snakeSVG.append(this.TailMaker());
 
         // Add to screen and refresh
         _snakeDIV.html(_snakeDIV.html());
     }
 };
 
+const SNAKE_RIPTIDE = [
+    5 / 10,
+    -1,
+    `<g class="snake-head">
+        
+    <path class="snake-tongue" d="M0,0
+        v-.05
+        q.3,0,.3,-.05
+        q0,.05,-.1,.1
+        q.1,.05,.1,.1
+        q0,-.05,-.3,-.05
+        v-.05
+        z
+        " transform="scale(1.5 1.5)">
+        <animateMotion dur="5s" repeatCount="indefinite" path="M0,0
+            h-.3
+            h.3
+            h-.3
+            h.3
+            h.3
+            h-.3
+            " />
+    </path>
+    <path class="snake-body" d="M0,0
+        m.3,0
+        q0-.2-.4-.2
+        q-.2,0-.2,.2
+        q0,.2,.2,.2
+        q.4,0,.4,-.2
+        z
+    " transform="scale(1.5 1.5)">
+    </path>
+    <g>
+        <ellipse class="" cx="0" cy=".25" rx=".20" ry=".15"></ellipse>
+        <ellipse class="snake-eye" cx=".04" cy=".25" rx=".12" ry=".09"></ellipse>
+    </g>
+    <g>
+        <ellipse class="" cx="0" cy="-.25" rx=".20" ry=".15"></ellipse>
+        <ellipse class="snake-eye" cx=".04" cy="-.25" rx=".12" ry=".09"></ellipse>
+    </g>
+</g>`,
+    -1,
+    `<path class="snake-body" d="M0,0
+    m0,.25
+    q-.1,0,-.4,-.25
+    q.3,-.25,.4,-.25
+    
+    ">
+    </path>
+`,
+    `.snake-body {
+        fill: #00f;
+        stroke: #000000;
+        stroke-width: 0.05;
+    }
+    .snake-tongue {
+        fill: #f00;
+        stroke: #000000;
+        stroke-width: 0.02;
+    }
+    .snake-eye {
+        fill: #fff;
+        stroke: #000000;
+        stroke-width: 0.02;
+    }`
+]
 $(() => {
-    s = new Snake("AA",
+    s = new Snake("rip",
         [
             [1, 1],
             [1, 0],
@@ -221,7 +343,7 @@ $(() => {
             [1, 3],
             [2, 3]
         ],
-        6 / 10
+        ...SNAKE_RIPTIDE,
     );
     s.Update();
 })
