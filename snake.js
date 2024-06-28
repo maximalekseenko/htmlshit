@@ -9,7 +9,7 @@ class Snake {
         __width = 5 / 10,
         __curve = -1,
         __headSVG = ``,
-        __segmentMaker = -1,
+        __segmentSVGs = [``, ``],
         __tailSVG = ``,
         __styles = ``
     ) {
@@ -29,7 +29,7 @@ class Snake {
 
         // Set maker functions.
         this.headSVG = __headSVG;
-        // this.segmentMaker;
+        this.segmentSVGs = __segmentSVGs;
         this.tailSVG = __tailSVG;
     }
 
@@ -60,22 +60,37 @@ class Snake {
 
     }
 
-    HeadMaker(__centerX, __centerY, __isHorizontal, __isPositive) {
+    __GetAngle(__dx, __dy) { return 90 * ((!__dx != 0) + 2 * (__dx > 0 || __dy > 0)); }
+
+    HeadMaker(__centerX, __centerY, __dxFront, __dyFront) {
         return $(this.headSVG)
-            .attr(`transform`, `
-                translate(${__centerX} ${__centerY})
-                rotate(${90 * (!__isHorizontal + 2 * __isPositive)} 0 0)
-            `);
+            .attr(`transform`,
+                `translate(${__centerX} ${__centerY})`
+                + `rotate(${this.__GetAngle(__dxFront, __dyFront)} 0 0)`
+            );
     }
-    SegmentMaker(__centerX, __centerY, __isHorizontal, __isPositive) {
-        // return `<a>`
+    SegmentMaker(__centerX, __centerY, __dxFront, __dyFront, __dxBack, __dyBack) {
+
+        // make for straight
+        if (__dxBack == __dxFront != 0 || __dyBack == __dyFront != 0)
+            return $(this.segmentSVGs[0])
+                .attr(`transform`,
+                    `translate(${__centerX} ${__centerY})`
+                    + `rotate(${this.__GetAngle(__dxFront, __dyFront)} 0 0)`
+                );
+        else return $(this.segmentSVGs[1])
+            .attr(`transform`,
+                `translate(${__centerX} ${__centerY})`
+                + `rotate(${this.__GetAngle(__dxFront, __dyFront)} 0 0)`
+                + ((__dxFront + __dxBack) * (__dyFront - __dyBack) > 0 ? `scale(1 -1)` : ``)
+            );
     }
-    TailMaker(__centerX, __centerY, __isHorizontal, __isPositive) {
+    TailMaker(__centerX, __centerY, __dxBack, __dyBack) {
         return $(this.tailSVG)
-            .attr(`transform`, `
-                translate(${__centerX} ${__centerY})
-                rotate(${90 * (!__isHorizontal + 2 * __isPositive)} 0 0)
-            `);
+            .attr(`transform`,
+                `translate(${__centerX} ${__centerY})`
+                + `rotate(${this.__GetAngle(__dxBack, __dyBack)} 0 0)`
+            );
     }
     BodyMaker() {
         // Main idea here is to make two paths, parallel around the central "core" path, 
@@ -124,8 +139,7 @@ class Snake {
                 pathB += `H${_thisSegmentCenterX}V${_thisSegmentCenterY}`;
 
                 // Make head SVG
-                snakeHead = this.HeadMaker(_thisSegmentCenterX, _thisSegmentCenterY,
-                    _dxFrontPath != 0, _dxFrontPath > 0 || _dyFrontPath > 0);
+                snakeHead = this.HeadMaker(_thisSegmentCenterX, _thisSegmentCenterY, _dxFrontPath, _dyFrontPath);
             }
 
             // If last segment.
@@ -137,16 +151,15 @@ class Snake {
 
                 // Move paths from body width into center;
                 // vertical or horizontal doesn't matter - the second one will be zero.
-                pathA += `H${_thisSegmentCenterX - _dyFrontPath * this._halfWidth
-                    }V${_thisSegmentCenterY + _dxFrontPath * this._halfWidth
+                pathA += `H${_thisSegmentCenterX - _dyBackPath * this._halfWidth
+                    }V${_thisSegmentCenterY + _dxBackPath * this._halfWidth
                     }`;
-                pathB = `H${_thisSegmentCenterX + _dyFrontPath * this._halfWidth
-                    }V${_thisSegmentCenterY - _dxFrontPath * this._halfWidth
+                pathB = `H${_thisSegmentCenterX + _dyBackPath * this._halfWidth
+                    }V${_thisSegmentCenterY - _dxBackPath * this._halfWidth
                     }` + pathB;
 
                 // Make tail SVG
-                snakeTail = this.TailMaker(_thisSegmentCenterX, _thisSegmentCenterY,
-                    _dxFrontPath != 0, _dxFrontPath > 0 || _dyFrontPath > 0);
+                snakeTail = this.TailMaker(_thisSegmentCenterX, _thisSegmentCenterY, _dxBackPath, _dyBackPath);
             }
 
             // If middle segments.
@@ -157,6 +170,13 @@ class Snake {
                     _dyFrontPath = this.segments[index + 1][1] - this.segments[index][1];
                 var _dxBackPath = this.segments[index][0] - this.segments[index - 1][0],
                     _dyBackPath = this.segments[index][1] - this.segments[index - 1][1];
+
+                // Add a Segment decor
+                snakeBodySegmentDecors.push(this.SegmentMaker(
+                    _thisSegmentCenterX, _thisSegmentCenterY,
+                    _dxFrontPath, _dyFrontPath,
+                    _dxBackPath, _dyBackPath
+                ));
 
                 // Skip segment if its is not a corner one.
                 if (_dxBackPath == _dxFrontPath != 0 || _dyBackPath == _dyFrontPath != 0)
@@ -192,9 +212,6 @@ class Snake {
                     }${(_dyFrontPath > 0 || _dyBackPath > 0 ? "-" : ",") + this.curve
                     }`
                     + pathB;
-
-                // Add a Segment decor
-                snakeBodySegmentDecors.push(this.SegmentMaker());
             }
         }
 
@@ -258,33 +275,10 @@ const SNAKE_RIPTIDE = [
     -1,
     `<g class="snake-head">
         
-    <path class="snake-tongue" d="M0,0
-        v-.05
-        q.3,0,.3,-.05
-        q0,.05,-.1,.1
-        q.1,.05,.1,.1
-        q0,-.05,-.3,-.05
-        v-.05
-        z
-        " transform="scale(1.5 1.5)">
-        <animateMotion dur="5s" repeatCount="indefinite" path="M0,0
-            h-.3
-            h.3
-            h-.3
-            h.3
-            h.3
-            h-.3
-            " />
+    <path class="snake-tongue" d="M0,0v-.05q.3,0,.3,-.05q0,.05,-.1,.1q.1,.05,.1,.1q0,-.05,-.3,-.05v-.05z" transform="scale(1.5 1.5)">
+        <animateMotion dur="5s" repeatCount="indefinite" path="M0,0h-.3h.3h-.3h.3h.3h-.3" />
     </path>
-    <path class="snake-body" d="M0,0
-        m.3,0
-        q0-.2-.4-.2
-        q-.2,0-.2,.2
-        q0,.2,.2,.2
-        q.4,0,.4,-.2
-        z
-    " transform="scale(1.5 1.5)">
-    </path>
+    <path class="snake-body" d="M0,0m.3,0q0-.2-.4-.2q-.2,0-.2,.2q0,.2,.2,.2q.4,0,.4,-.2z" transform="scale(1.5 1.5)"></path>
     <g>
         <ellipse class="" cx="0" cy=".25" rx=".20" ry=".15"></ellipse>
         <ellipse class="snake-eye" cx=".04" cy=".25" rx=".12" ry=".09"></ellipse>
@@ -293,18 +287,26 @@ const SNAKE_RIPTIDE = [
         <ellipse class="" cx="0" cy="-.25" rx=".20" ry=".15"></ellipse>
         <ellipse class="snake-eye" cx=".04" cy="-.25" rx=".12" ry=".09"></ellipse>
     </g>
-</g>`,
-    -1,
-    `<path class="snake-body" d="M0,0
-    m0,.25
-    q-.1,0,-.4,-.25
-    q.3,-.25,.4,-.25
-    
-    ">
-    </path>
-`,
+        <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.5,0) scale(1.4 1.4) rotate(180)"></path>
+    </g>`,
+    [
+        `<g class="snake-segment">
+            <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="scale(1.4 1.4) rotate(180)"></path>
+            <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.5,0) rotate(180)"></path>
+        </g>`,
+        `<g class="snake-segment">
+            <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.1,.1) scale(1.4 1.4) rotate(225)"></path>
+            <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.5,0) rotate(180)"></path>
+        </g>`
+    ]
+    ,
+    `<g class="snake-tail">
+        <path class="snake-body" d="M0,0m.1,.25h-.1q-.3,0,-.6,-.25q.4,-.25,.6,-.25h.1"></path>
+        <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(.15,0) scale(.9 .9) rotate(180)"></path>
+        <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.15,0) scale(.8 .8) rotate(180)"></path>
+    </g>`,
     `.snake-body {
-        fill: #00f;
+        fill: #004d86;
         stroke: #000000;
         stroke-width: 0.05;
     }
@@ -315,6 +317,11 @@ const SNAKE_RIPTIDE = [
     }
     .snake-eye {
         fill: #fff;
+        stroke: #000000;
+        stroke-width: 0.02;
+    }
+    .snake-spike {
+        fill: #849dab;
         stroke: #000000;
         stroke-width: 0.02;
     }`
