@@ -6,50 +6,33 @@ class Snake {
     constructor(
         __name = "rip",
         __segments = [],
-        __width = 5 / 10,
-        __curve = -1,
-        __headSVG = ``,
-        __segmentSVGs = [``, ``],
-        __tailSVG = ``,
-        __styles = ``,
         __snakeData = {}
     ) {
 
         // Set name.
         this.name = __name;
 
-        // Set Segments.
+        // Set initial Segments.
         this.segments = [];
         __segments.forEach(_segment => this.GrowHead(_segment));
 
-        // Set width (half width) and curve.
-        this.SetWidthAndCurve(__width, __curve);
+        // Set data.
+        this.SetSnakeData(__snakeData);
 
-        // Set Styles.
-        this.styles = __styles;
-
-        // Set maker functions.
-        this.headSVG = __headSVG;
-        this.segmentSVGs = __segmentSVGs;
-        this.tailSVG = __tailSVG;
-
-
-        this.snakeData = __snakeData;
     }
 
 
-    SetWidthAndCurve(__newWidth, __newCurve) {
+    SetSnakeData(__newSnakeData) {
 
-        // Check arguments.
-        if (!(0 < __newWidth <= 1))
-            throw `Snake "${this.name}" got incorrect width "${__newWidth}".`;
-        if (__newCurve != -1 && !(0 <= __newCurve <= (1 - __newWidth) / 2))
-            throw `New snake "${this.name}" with width of "${__newWidth}" got incorrect curve size "${__curve}".`;
+        // Validate new Data.
+        if (!(0 < __newSnakeData['bodyWidth'] <= 1))
+            throw `Snake "${this.name}" got incorrect width "${__newSnakeData['bodyWidth']}".`;
 
-        // Set
-        this.width = __newWidth;
-        this._halfWidth = __newWidth / 2;
-        this.curve = (__newCurve == -1 ? (1 - __newWidth) / 2 : __newCurve);
+        this.snakeData = __newSnakeData;
+
+        // Set math-assistant variables.
+        this._halfWidth = __newSnakeData['bodyWidth'] / 2;
+        this._curve = (1 - __newSnakeData['bodyWidth']) / 2;
     }
 
 
@@ -226,25 +209,25 @@ class Snake {
                     // Make a straight move.
                     (_dxBackPath != 0 ? 'H' : 'V') + (
                         (_dxBackPath != 0 ? _thisSegmentCenterX : _thisSegmentCenterY)
-                        + ((this._halfWidth + this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxBackPath > 0 || _dyBackPath > 0) ? -1 : 1))
+                        + ((this._halfWidth + this._curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxBackPath > 0 || _dyBackPath > 0) ? -1 : 1))
                     )
                     // Make a Bezier curve.
-                    + `q${(_dxBackPath < 0 ? "-" : "") + (_dyFrontPath != 0 ? this.curve : 0)
-                    }${(_dyBackPath < 0 ? "-" : ",") + (_dxFrontPath != 0 ? this.curve : 0)
-                    }${(_dxBackPath < 0 || _dxFrontPath < 0 ? "-" : ",") + this.curve
-                    }${(_dyBackPath < 0 || _dyFrontPath < 0 ? "-" : ",") + this.curve
+                    + `q${(_dxBackPath < 0 ? "-" : "") + (_dyFrontPath != 0 ? this._curve : 0)
+                    }${(_dyBackPath < 0 ? "-" : ",") + (_dxFrontPath != 0 ? this._curve : 0)
+                    }${(_dxBackPath < 0 || _dxFrontPath < 0 ? "-" : ",") + this._curve
+                    }${(_dyBackPath < 0 || _dyFrontPath < 0 ? "-" : ",") + this._curve
                     }`;
                 _pathB =
                     // Make a straight move.
                     (_dxFrontPath != 0 ? 'H' : 'V') + (
                         (_dxFrontPath != 0 ? _thisSegmentCenterX : _thisSegmentCenterY)
-                        + ((this._halfWidth - this.curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxFrontPath > 0 || _dyFrontPath > 0) ? -1 : 1))
+                        + ((this._halfWidth - this._curve * (_isClockwise ? 1 : -1)) * (_isClockwise == (_dxFrontPath > 0 || _dyFrontPath > 0) ? -1 : 1))
                     )
                     // Make a Bezier curve.
-                    + `q${(_dxFrontPath > 0 ? "-" : "") + (_dyBackPath != 0 ? this.curve : 0)
-                    }${(_dyFrontPath > 0 ? "-" : ",") + (_dxBackPath != 0 ? this.curve : 0)
-                    }${(_dxFrontPath > 0 || _dxBackPath > 0 ? "-" : ",") + this.curve
-                    }${(_dyFrontPath > 0 || _dyBackPath > 0 ? "-" : ",") + this.curve
+                    + `q${(_dxFrontPath > 0 ? "-" : "") + (_dyBackPath != 0 ? this._curve : 0)
+                    }${(_dyFrontPath > 0 ? "-" : ",") + (_dxBackPath != 0 ? this._curve : 0)
+                    }${(_dxFrontPath > 0 || _dxBackPath > 0 ? "-" : ",") + this._curve
+                    }${(_dyFrontPath > 0 || _dyBackPath > 0 ? "-" : ",") + this._curve
                     }`
                     + _pathB;
             }
@@ -294,63 +277,6 @@ class Snake {
             .html(_snakeDIV.html());
     }
 };
-
-const SNAKE_RIPTIDE = [
-    5 / 10,
-    -1,
-    `<g class="snake-head">
-        
-    <path class="snake-tongue" d="M0,0v-.05q.3,0,.3,-.05q0,.05,-.1,.1q.1,.05,.1,.1q0,-.05,-.3,-.05v-.05z" transform="scale(1.5 1.5)">
-        <animateMotion dur="5s" repeatCount="indefinite" path="M0,0h-.3h.3h-.3h.3h.3h-.3" />
-    </path>
-    <path class="snake-body" d="M0,0m.3,0q0-.2-.4-.2q-.2,0-.2,.2q0,.2,.2,.2q.4,0,.4,-.2z" transform="scale(1.5 1.5)"></path>
-    <g>
-        <ellipse class="" cx="0" cy=".25" rx=".20" ry=".15"></ellipse>
-        <ellipse class="snake-eye" cx=".04" cy=".25" rx=".12" ry=".09"></ellipse>
-    </g>
-    <g>
-        <ellipse class="" cx="0" cy="-.25" rx=".20" ry=".15"></ellipse>
-        <ellipse class="snake-eye" cx=".04" cy="-.25" rx=".12" ry=".09"></ellipse>
-    </g>
-        <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.5,0) scale(1.4 1.4) rotate(180)"></path>
-    </g>`,
-    [
-        `<g class="snake-segment">
-            <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="scale(1.4 1.4) rotate(180)"></path>
-            <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.5,0) rotate(180)"></path>
-        </g>`,
-        `<g class="snake-segment">
-            <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.1,.1) scale(1.4 1.4) rotate(225)"></path>
-            <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.5,0) rotate(180)"></path>
-        </g>`
-    ]
-    ,
-    `<g class="snake-tail">
-        <path class="snake-body" d="M0,0m.1,.25h-.1q-.3,0,-.6,-.25q.4,-.25,.6,-.25h.1"></path>
-        <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(.15,0) scale(.9 .9) rotate(180)"></path>
-        <path class="snake-spike" d="M0,0m.15,0q0-.05,-.1,-.05q-.1,0,-.2,.05q.1,.05,.2,.05q.1,0,.1,-.05z" transform="translate(-.15,0) scale(.8 .8) rotate(180)"></path>
-    </g>`,
-    `.snake-body {
-        fill: #004d86;
-        stroke: #000000;
-        stroke-width: 0.05;
-    }
-    .snake-tongue {
-        fill: #0072c6;
-        stroke: #000000;
-        stroke-width: 0.02;
-    }
-    .snake-eye {
-        fill: #fff;
-        stroke: #000000;
-        stroke-width: 0.02;
-    }
-    .snake-spike {
-        fill: #849dab;
-        stroke: #000000;
-        stroke-width: 0.02;
-    }`
-]
 
 const SNAKE_DATA_RIPTIDE = {
     'dataName': "riptide",
@@ -448,7 +374,7 @@ const SNAKE_DATA_RIPTIDE = {
 }
 
 
-const snake = new Snake("rip", [], ...SNAKE_RIPTIDE, SNAKE_DATA_RIPTIDE)
+const snake = new Snake("rip", [], SNAKE_DATA_RIPTIDE)
 
 function GridButtonPressNewSegment(__x, __y) {
     var _isCuttingHead = snake.segments.length != 0 && snake.segments[0][0] == __x && snake.segments[0][1] == __y
@@ -491,9 +417,12 @@ $(() => {
             _grid.append(`<button class="grid-tile grid-tile-${iCol}-${iRow}" onclick="GridButtonPressNewSegment(${iCol}, ${iRow})">`);
 
 
-    GridButtonPressNewSegment(1, 1);
-    GridButtonPressNewSegment(2, 1);
-    GridButtonPressNewSegment(3, 1);
-    GridButtonPressNewSegment(3, 2);
-    // GridButtonPressNewSegment(3,3);
+    // Starting snake shit
+    GridButtonPressNewSegment(5, 3);
+    GridButtonPressNewSegment(5, 2);
+    GridButtonPressNewSegment(4, 2);
+    GridButtonPressNewSegment(4, 3);
+    GridButtonPressNewSegment(4, 4);
+    GridButtonPressNewSegment(5, 4);
+    GridButtonPressNewSegment(5, 5);
 })
