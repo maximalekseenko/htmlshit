@@ -2,9 +2,14 @@
 <script src="./snake.js"></script>
 
 <body style="width: 100%; height: 100%;">
-    <div id="gameField">
-        <div id="grid"></div>
-        <div id="snakes"></div>
+    <div class="centralBoxOuter">
+        <div class="centralBoxInner">
+            <div id="gameField">
+                <div id="grid"></div>
+                <div id="snakes"></div>
+            </div>
+            <button class="menuButton" onclick="ChangeMode()" id="menuButtonChangeMode">Mode:move</button>
+        </div>
     </div>
 </body>
 
@@ -13,26 +18,46 @@
         margin: 0;
         position: relative;
         height: 100%;
-
     }
 
-    #gameField {
+    .menuButton {
+        font-family: 'Courier New', Courier, monospace;
+
+        margin: 0;
+        padding: 0;
+        border: 1px solid gray;
+        color: none;
+        background-color: darkgray;
+        cursor: pointer;
+    }
+
+    .centralBoxOuter {
         width: 100%;
         height: 100%;
-        padding: 0;
         box-sizing: border-box;
-        text-align: center;
+        justify-content: center;
     }
 
-    #gameField>div {
+    .centralBoxInner {
         width: 100vmin;
         height: 100vmin;
         margin: 0 auto;
-        position: absolute;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #gameField {
+        align-self: center;
+        flex-grow: 1;
+        aspect-ratio: 1 / 1;
+        position: relative;
     }
 
     #snakes {
         pointer-events: none;
+        position: absolute;
+        width: 100%;
+        height: 100%;
     }
 
     .snake {
@@ -43,6 +68,9 @@
 
     #grid {
         display: grid;
+        width: 100%;
+        height: 100%;
+        position: absolute;
     }
 
     .grid-tile {
@@ -56,6 +84,7 @@
 
     .grid-tile:disabled {
         background-color: transparent;
+        cursor:default;
     }
 
     .grid-tile:enabled:hover {

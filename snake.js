@@ -19,6 +19,7 @@ class Snake {
         // Set data.
         this.SetSnakeData(__snakeData);
 
+        this.Update();
     }
 
 
@@ -99,7 +100,6 @@ class Snake {
 
         // If this is SVGs-with-corners,
         // extract the correct one.
-        console.log(SVG)
         if (Array.isArray(SVG))
             SVG = SVG[Number(!(__dxBack == __dxFront != 0 || __dyBack == __dyFront != 0))];
 
@@ -374,15 +374,33 @@ const SNAKE_DATA_RIPTIDE = {
 }
 
 
-const snake = new Snake("rip", [], SNAKE_DATA_RIPTIDE)
+var snake = new Snake("rip", [], SNAKE_DATA_RIPTIDE)
+var gameMode = "grow";
+function ChangeMode() {
+    if (gameMode == "move")
+        gameMode = "grow";
+
+    else if (gameMode == "grow")
+        gameMode = "move"
+
+    $(`#menuButtonChangeMode`).html(`Mode:${gameMode}`);
+}
 
 function GridButtonPressNewSegment(__x, __y) {
     var _isCuttingHead = snake.segments.length != 0 && snake.segments[0][0] == __x && snake.segments[0][1] == __y
 
     // Change snake
-    if (_isCuttingHead)
-        snake.CutHead();
-    else snake.GrowHead([__x, __y]);
+    if (gameMode == "grow") {
+        if (_isCuttingHead) {
+            if (snake.segments.length > 4)
+                snake.CutHead();
+        }
+        else snake.GrowHead([__x, __y]);
+    }
+    else if (gameMode == "move") {
+        if (!_isCuttingHead)
+            snake.Move([__x, __y]);
+    }
 
     try { snake.Update(); } catch { }
 
@@ -418,11 +436,7 @@ $(() => {
 
 
     // Starting snake shit
-    GridButtonPressNewSegment(5, 3);
-    GridButtonPressNewSegment(5, 2);
-    GridButtonPressNewSegment(4, 2);
-    GridButtonPressNewSegment(4, 3);
-    GridButtonPressNewSegment(4, 4);
-    GridButtonPressNewSegment(5, 4);
+    snake = new Snake("rip", [[5, 3], [5, 2], [4, 2], [4, 3], [4, 4], [5, 4]], SNAKE_DATA_RIPTIDE);
     GridButtonPressNewSegment(5, 5);
+    ChangeMode();
 })
