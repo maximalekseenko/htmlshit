@@ -2,5 +2,63 @@
 <script src="./snake.js"></script>
 
 <body style="width: 100%; height: 100%;">
-    <div id="snakes" style="padding: 10%;"></div>
+    <div id="gameField">
+        <div id="grid"></div>
+        <div id="snakes"></div>
+    </div>
 </body>
+
+<style>
+    body {
+        margin: 0;
+        position: relative;
+        height: 100%;
+
+    }
+
+    #gameField {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        box-sizing: border-box;
+        text-align: center;
+    }
+
+    #gameField>div {
+        width: 100vmin;
+        height: 100vmin;
+        margin: 0 auto;
+        position: absolute;
+    }
+
+    #snakes {
+        pointer-events: none;
+    }
+
+    .snake {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
+
+    #grid {
+        display: grid;
+    }
+
+    .grid-tile {
+        margin: 0;
+        padding: 0;
+        border: 1px dashed gray;
+        color: none;
+        background-color: #adff2f50;
+        cursor: pointer;
+    }
+
+    .grid-tile:disabled {
+        background-color: transparent;
+    }
+
+    .grid-tile:enabled:hover {
+        background-color: #adff2fa0;
+    }
+</style>
