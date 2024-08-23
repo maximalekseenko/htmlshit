@@ -13,12 +13,12 @@ class SnakeData {
         /** Name of this snakeData.
          * @type {string}
         */
-        this.dataName = "";
+        this.dataName = "default";
 
         /** Creator of this snakeData.
          * @type {string}
         */
-        this.dataAuthor = "";
+        this.dataAuthor = "maxim alekseenko";
 
         /** Width of the snake.Must be in range[1, 0).
          * @type {number}
@@ -28,12 +28,12 @@ class SnakeData {
         /** Styles, used by SVGs in this snake.Snake's body's style is "snake-body".
          * @type {string}
         */
-        this.styles = "";
+        this.styles = ".snake-body {fill: #9b9; stroke: #010; stroke-width: 1%;}";
 
         /** Dictionary of SegmentSVGs, where keys are segment indexes counted from the head(increments down to tail).
          * @type {{[index: number]: SegmentSVG}}
          */
-        this.segmentSVGHead = [];
+        this.segmentSVGHead = [`<path class="snake-body" d="M0,0m.4,0q0-.2-.5-.3q-.3,0-.3,.3q0,.3,.3,.3q.5-.1,.5,-.3z"></path>`];
 
         /** Dictionary of SegmentSVGs, where keys are segment indexes counted from the head(increments down to tail).
          * @type {{[index: number]: SegmentSVG}}
@@ -43,12 +43,12 @@ class SnakeData {
         /** Dictionary of SegmentSVGs, where keys are segment indexes counted from the head(increments up to head).
         * @type {{[index: number]: SegmentSVG}}
         */
-        this.segmentSVGTail = [];
+        this.segmentSVGTail = [`<path class="snake-body" d="M0,0m.15,.25h-.1q-.3,0,-.6,-.25q.4,-.25,.6,-.25h.1"></path>`];
 
         /** SegmentSVG that is used along the body.
          * @type {SegmentSVG}
          */
-        this.segmentSVGDefault = ``;
+        this.segmentSVGDefault = [`<ellipse cx="0" cy="0" rx=".15" ry=".15"></ellipse>`, `<ellipse cx="-.1" cy=".1" rx=".15" ry=".15"></ellipse>`];
 
         /** In case where multiple segmentSVGs may be at one index (due to length for example),
          * this order defines which SVG will be selected in the end, preferring the leftmost one.
@@ -67,16 +67,18 @@ class SnakeData {
 /** Snake <3 */
 class Snake {
     /** Initializes a new snake.
-     * @param {string } __name 
-     * @param {number[][] } __segments Array of starting points this snake occupies. Must be valid points.
-     * @param {SnakeData } __snakeData Snake data for this snake.
-     * @param {number[] } __gridDimensions Dimensions of a grid, this snake is moving on.
+     * @param {string} __name 
+     * @param {number[][]} __segments Array of starting points this snake occupies. Must be valid points.
+     * @param {SnakeData} __snakeData Snake data for this snake.
+     * @param {number[]} __gridDimensions Dimensions of a grid, this snake is moving on.
+     * @param {boolean} __gridRecursion Defines if gris is recursive.
      */
     constructor(
         __name,
         __segments,
         __snakeData,
-        __gridDimensions
+        __gridDimensions,
+        __gridRecursion
     ) {
 
         /** Name of this snake. Used as an id.
@@ -87,27 +89,28 @@ class Snake {
         this.name = __name;
 
         /** Array of connected points, forming this snake.
-         * @type {number[][] }
+         * @type {number[][]}
          * @private Use Grow and Cut functions to access plz.
          */
         this.segments = [];
         __segments.forEach(_segment => this.GrowHead(_segment));
 
         /** Data used for this snake.
-         * @type {SnakeData }
+         * @type {SnakeData}
          * @private use SetSnakeData to change.
          */
         this.snakeData = Object.assign(new SnakeData(), __snakeData);
 
         /**
-         * @type {number[] }
+         * @type {number[]}
          */
         this.gridDimensions = __gridDimensions;
+
+        this.gridRecursion = __gridRecursion;
 
         // Render on screen.
         this.Update();
     }
-
 
     /** Adds a new first segment to this snake.
      * @param {number[]} __point A point to grow to. Must be adjacent to a current head.
@@ -149,6 +152,8 @@ class Snake {
         this.segments.pop();
     }
 
+    GetHead() { return this.segments[0]; }
+
     /** moves the snake to an adjacent point.
      * @param {number[]} __point Point to move on. Must be adjacent to snake's head.
      * @param {boolean} [__doUpdate=false] Should this function run Update upon completion.
@@ -159,6 +164,22 @@ class Snake {
 
         if (__doUpdate)
             this.Update();
+    }
+
+    FixedPoint(__point) {
+        return this.gridRecursion ? 
+        [__point[0] % this.gridDimensions[0], __point[1] % this.gridDimensions[1]] 
+        : __point
+    }
+
+    GetValidGrowPoints() {
+        var _headPoint = this.GetHead();
+        return [
+            FixedPoint(_headPoint[0]+1, _headPoint[0]),
+            FixedPoint(_headPoint[0]-1, _headPoint[0]),
+            FixedPoint(_headPoint[0], _headPoint[0]+1),
+            FixedPoint(_headPoint[0], _headPoint[0]-1),
+        ].filter(__newPoint => !this.segments.some())
     }
 
     /** Check if this snake occupies a point.
@@ -180,6 +201,8 @@ class Snake {
      * @returns {SegmentSVG} SVG component of a snake's segment, moved and rotated correspondingly.
      * @private
      */
+
+
     MakeSegmentSvg(
         __segment_index,
         __centerX, __centerY,
@@ -217,11 +240,7 @@ class Snake {
             );
     }
 
-    /** Creates SVG components of this snake.
-     * @returns {SegmentSVG[]} Array of SVG components, defining this snake's look.
-     * @private 
-     */
-    BodyMaker() {
+    MakeBodyPart(__points, __firstSegmentIndex) {
 
         // Main idea here is to make two paths, parallel around the central "core" path, 
         // and then connect them, forming a snake-width thick figure around "core" path,
@@ -234,76 +253,58 @@ class Snake {
         // Path B is a right side.
         var _pathA = "", _pathB = "";
 
+        // segmentSVG created on this body part.
+        var _createdSegmentSVGs = [];
+
         // Calculate common math shit.
         var _halfWidth = this.snakeData.bodyWidth / 2,
             _curve = (1 - this.snakeData.bodyWidth) / 2;
 
-        var snakeBodySegmentDecors = [];
-
         // Iterate through segments.
-        for (let _segment_index = 0; _segment_index < this.segments.length; _segment_index++) {
+        for (let _pointIndex = 0; _pointIndex < __points.length; _pointIndex++) {
 
             // Central point of current segment.
-            var _centerX = this.segments[_segment_index][0] + .5,
-                _centerY = this.segments[_segment_index][1] + .5;
+            var _centerX = __points[_pointIndex][0] + .5,
+                _centerY = __points[_pointIndex][1] + .5;
 
 
             // Get directions to this segment and from this segment;
-            // if there is no next or previous paths, consider it strait
+            // if there is no next or previous paths, consider it strait.
             var _dxFront, _dyFront, _dxBack, _dyBack;
-            if (_segment_index != this.segments.length - 1) {
-                _dxFront = this.segments[_segment_index + 1][0] - this.segments[_segment_index][0];
-                _dyFront = this.segments[_segment_index + 1][1] - this.segments[_segment_index][1];
-                if (_segment_index == 0) {
+            if (_pointIndex != __points.length - 1) {
+                _dxFront = __points[_pointIndex + 1][0] - __points[_pointIndex][0];
+                _dyFront = __points[_pointIndex + 1][1] - __points[_pointIndex][1];
+                if (_pointIndex == 0) {
                     _dxBack = _dxFront;
                     _dyBack = _dyFront;
                 }
             }
-            if (_segment_index != 0) {
-                _dxBack = this.segments[_segment_index][0] - this.segments[_segment_index - 1][0];
-                _dyBack = this.segments[_segment_index][1] - this.segments[_segment_index - 1][1];
-                if (_segment_index == this.segments.length - 1) {
+            if (_pointIndex != 0) {
+                _dxBack = __points[_pointIndex][0] - __points[_pointIndex - 1][0];
+                _dyBack = __points[_pointIndex][1] - __points[_pointIndex - 1][1];
+                if (_pointIndex == __points.length - 1) {
                     _dxFront = _dxBack;
                     _dyFront = _dyBack;
                 }
             }
 
             // Add the decoration
-            snakeBodySegmentDecors.unshift(this.MakeSegmentSvg(
-                _segment_index,
+            _createdSegmentSVGs.unshift(this.MakeSegmentSvg(
+                __firstSegmentIndex + _pointIndex,
                 _centerX, _centerY,
-                _dxFront, _dyFront, _dxBack, _dyBack));
+                _dxFront, _dyFront, _dxBack, _dyBack)
+            );
 
             // If first segment.
-            if (_segment_index == 0) {
-
-                // Center start
-                _pathA += `M${_centerX},${_centerY}`;
-
-                // Move paths out of center to body width;
-                // vertical or horizontal doesn't matter - the second one will be zero.
-                _pathA += `h${-_dyFront * _halfWidth
-                    }v${_dxFront * _halfWidth
-                    }`;
-                _pathB = `H${_centerX + _dyFront * _halfWidth
-                    }V${_centerY - _dxFront * _halfWidth
-                    }` + _pathB;
-
-                // Center end.
-                _pathB += `H${_centerX}V${_centerY}`;
+            if (_pointIndex == 0) {
+                _pathA += `M${_centerX - _dyFront * _halfWidth},${_centerY + _dxFront * _halfWidth}`;
+                _pathB = `H${_centerX + _dyFront * _halfWidth}V${_centerY - _dxFront * _halfWidth}` + _pathB;
             }
 
             // If last segment.
-            else if (_segment_index == this.segments.length - 1) {
-
-                // Move paths from body width into center;
-                // vertical or horizontal doesn't matter - the second one will be zero.
-                _pathA += `H${_centerX - _dyBack * _halfWidth
-                    }V${_centerY + _dxBack * _halfWidth
-                    }`;
-                _pathB = `H${_centerX + _dyBack * _halfWidth
-                    }V${_centerY - _dxBack * _halfWidth
-                    }` + _pathB;
+            else if (_pointIndex == __points.length - 1) {
+                _pathA += `H${_centerX - _dyBack * _halfWidth}V${_centerY + _dxBack * _halfWidth}`;
+                _pathB = `H${_centerX + _dyBack * _halfWidth}V${_centerY - _dxBack * _halfWidth}` + _pathB + 'Z';
             }
 
             // If middle segments.
@@ -345,22 +346,33 @@ class Snake {
                     + _pathB;
             }
         }
+        return [
+            $(`<path/>`)
+                .attr(`d`, _pathA + _pathB)
+                .addClass(`snake-body`),
+            _createdSegmentSVGs
+        ];
+    }
+
+    /** Creates SVG components of this snake.
+     * @returns {SegmentSVG[]} Array of SVG components, defining this snake's look.
+     * @private 
+     */
+    BodyMaker() {
+
+        var [_bodyPaths, _segmentSVGs] = this.MakeBodyPart(this.segments, 0);
 
         // Return svg components:
         return [
             // Body path;
             $(`<g/>`)
                 .attr(`id`, `snake-${this.name}-svg-body-group`)
-                .append($(`<path/>`)
-                    .attr(`id`, `snake-${this.name}-svg-body-path`)
-                    .attr(`d`, _pathA + _pathB)
-                    .addClass(`snake-body`)
-                ),
+                .append(_bodyPaths),
 
             // Segments;
             $(`<g/>`)
                 .attr(`id`, `snake-${this.name}-svg-segment-group`)
-                .append(snakeBodySegmentDecors)
+                .append(_segmentSVGs)
         ];
     }
 

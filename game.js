@@ -157,7 +157,7 @@ $(() => {
 
 
     // Starting snake shit
-    snake = new Snake("riptide", [[5, 3], [5, 2], [4, 2], [4, 3], [4, 4], [5, 4]], SNAKE_DATA_RIPTIDE, [GRIDCOLS, GRIDROWS]);
+    snake = new Snake("riptide", [[5, 3], [5, 2], [4, 2], [4, 3], [4, 4], [5, 4]], {...new SnakeData(), ...SNAKE_DATA_RIPTIDE}, [GRIDCOLS, GRIDROWS]);
     GridButtonPressNewSegment(5, 5);
     ChangeMode();
 })
