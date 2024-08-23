@@ -1,6 +1,14 @@
-<script src="./jquery-3.7.1.js"></script>
-<script src="./snake.js"></script>
-<script src="./game.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake-Drawing</title>
+    <link rel="stylesheet" href="/main.css">
+    <link rel="stylesheet" href="./snake.css">
+    <link rel="icon" href="/max-uwu.png" />
+</head>
 
 <body style="width: 100%; height: 100%;">
     <div class="centralBoxOuter">
@@ -12,83 +20,10 @@
             <button class="menuButton" onclick="ChangeMode()" id="menuButtonChangeMode">Mode:move</button>
         </div>
     </div>
+
+    <script src="./jquery-3.7.1.js"></script>
+    <script src="./snake.js"></script>
+    <script src="./game.js"></script>
 </body>
 
-<style>
-    body {
-        margin: 0;
-        position: relative;
-        height: 100%;
-    }
-
-    .menuButton {
-        font-family: 'Courier New', Courier, monospace;
-
-        margin: 0;
-        padding: 4px;
-        border: 1px solid gray;
-        color: none;
-        background-color: darkgray;
-        cursor: pointer;
-    }
-
-    .centralBoxOuter {
-        width: 100%;
-        height: 100%;
-        box-sizing: border-box;
-        justify-content: center;
-    }
-
-    .centralBoxInner {
-        width: 100vmin;
-        height: 100vmin;
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-    }
-
-    #gameField {
-        align-self: center;
-        flex-grow: 1;
-        aspect-ratio: 1 / 1;
-        position: relative;
-    }
-
-    #snakes {
-        pointer-events: none;
-        position: absolute;
-        width: 100%;
-        height: 100%;
-    }
-
-    .snake {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-    }
-
-    #grid {
-        display: grid;
-        width: 100%;
-        height: 100%;
-        position: absolute;
-    }
-
-    .grid-tile {
-        margin: 0;
-        padding: 0;
-        border: 1px dashed gray;
-        color: none;
-        background-color: #adff2f50;
-        cursor: pointer;
-    }
-
-    .grid-tile:disabled {
-        background-color: transparent;
-        cursor: default;
-    }
-
-    .grid-tile:enabled:hover {
-        background-color: #adff2fa0;
-    }
-</style>
+</html>
